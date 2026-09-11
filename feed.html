@@ -23,6 +23,15 @@
     }
     .avatar-lg { width: 48px; height: 48px; font-size: 1.1rem; }
     .avatar-sm { width: 32px; height: 32px; font-size: 0.75rem; }
+    .notif-badge {
+      position: absolute; top: -4px; right: -4px;
+      background: #ef4444; color: white;
+      font-size: 10px; font-weight: bold;
+      min-width: 18px; height: 18px;
+      border-radius: 9999px; display: flex;
+      align-items: center; justify-content: center;
+      padding: 0 4px;
+    }
   </style>
 </head>
 <body class="min-h-screen bg-slate-100">
@@ -32,9 +41,9 @@
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
       <a href="feed.html" class="text-lg sm:text-xl font-bold text-indigo-600 whitespace-nowrap">Red131</a>
 
-      <!-- Menú desktop -->
       <nav class="hidden md:flex items-center gap-1 text-sm">
         <a href="feed.html" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">Muro</a>
+        <a href="friends.html" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">👥 Amigos</a>
         <a href="https://edmarquis1.github.io/REGISTRO-DE-DE-ESTUDIANTES/" target="_blank"
            class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">🎓 Estudiantes</a>
         <a href="https://edmarquis1.github.io/Usalesiana/" target="_blank"
@@ -44,6 +53,28 @@
       </nav>
 
       <div class="flex items-center gap-2">
+        <!-- Campanita -->
+        <div class="relative">
+          <button id="btn-notif" class="p-2 rounded-full hover:bg-slate-100 transition relative">
+            <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span id="notif-count" class="notif-badge hidden">0</span>
+          </button>
+
+          <!-- Panel desplegable -->
+          <div id="notif-panel" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 max-h-96 overflow-y-auto z-30">
+            <div class="p-3 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white">
+              <h3 class="font-semibold text-slate-800 text-sm">🔔 Notificaciones</h3>
+              <button id="btn-marcar-leidas" class="text-xs text-indigo-600 hover:underline">Marcar todas leídas</button>
+            </div>
+            <div id="notif-list" class="divide-y divide-slate-50">
+              <p class="text-center text-slate-400 text-sm py-6">Sin notificaciones.</p>
+            </div>
+          </div>
+        </div>
+
         <a href="profile.html" id="link-perfil" class="flex items-center gap-2 hover:bg-slate-100 px-2 py-1 rounded-lg transition">
           <div id="avatar-header" class="avatar">?</div>
           <span id="user-name" class="text-sm text-slate-700 hidden sm:inline"></span>
@@ -55,6 +86,7 @@
     <!-- Menú móvil -->
     <nav class="md:hidden flex items-center gap-1 px-4 pb-3 text-xs overflow-x-auto">
       <a href="feed.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">Muro</a>
+      <a href="friends.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">👥 Amigos</a>
       <a href="https://edmarquis1.github.io/REGISTRO-DE-DE-ESTUDIANTES/" target="_blank"
          class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">🎓 Estudiantes</a>
       <a href="https://edmarquis1.github.io/Usalesiana/" target="_blank"
@@ -66,19 +98,16 @@
 
   <main class="max-w-2xl mx-auto p-4 space-y-4">
 
-    <!-- Caja de crear publicación -->
     <section class="bg-white rounded-2xl shadow p-4">
       <div class="flex gap-3">
         <div id="avatar-composer" class="avatar">?</div>
         <div class="flex-1">
           <textarea id="post-content" rows="2" placeholder="¿Qué estás pensando?"
             class="w-full resize-none border-0 focus:outline-none text-slate-700 placeholder:text-slate-400"></textarea>
-
           <div id="post-image-preview" class="hidden mt-2">
             <img id="post-image-preview-img" class="rounded-lg max-h-48 object-cover" />
             <button id="btn-quitar-imagen" class="text-xs text-red-500 mt-1">✕ Quitar imagen</button>
           </div>
-
           <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
             <label for="post-image" class="cursor-pointer text-slate-500 hover:text-indigo-600 text-sm flex items-center gap-1">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,7 +117,6 @@
               <span class="hidden sm:inline">Foto</span>
             </label>
             <input type="file" id="post-image" accept="image/*" class="hidden">
-
             <button id="btn-publicar"
               class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition text-white font-medium px-5 py-2 rounded-lg text-sm shadow disabled:opacity-50 disabled:cursor-not-allowed">
               Publicar
@@ -98,7 +126,6 @@
       </div>
     </section>
 
-    <!-- Lista de publicaciones -->
     <section id="posts-container" class="space-y-4">
       <div class="text-center py-8 text-slate-400">
         <div class="animate-spin inline-block w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
@@ -111,23 +138,15 @@
 
   <script>
     (function() {
-      // ============================================================
-      //  CONFIGURACIÓN
-      // ============================================================
       const SUPABASE_URL = 'https://dqzxxwnkkoiefkwxtnnt.supabase.co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxenh4d25ra29pZWZrd3h0bm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MDkwMTEsImV4cCI6MjEwNDQ4NTAxMX0.TnByaHcgrPTrKr2y5PhpFLNXlYlylOGOIP9B_t7s7tE';
       const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      // ============================================================
-      //  ESTADO GLOBAL
-      // ============================================================
       let currentUser = null;
       let currentProfile = null;
       let imagenBase64 = '';
+      let notificaciones = [];
 
-      // ============================================================
-      //  UTILIDADES
-      // ============================================================
       const toastEl = document.getElementById('toast');
       let toastTimer = null;
       function mostrarToast(msg, esError = false) {
@@ -139,9 +158,9 @@
       }
 
       function escapeHtml(texto) {
-        const div = document.createElement('div');
-        div.textContent = texto;
-        return div.innerHTML;
+        const d = document.createElement('div');
+        d.textContent = texto || '';
+        return d.innerHTML;
       }
 
       function tiempoRelativo(fechaISO) {
@@ -157,30 +176,20 @@
 
       function renderAvatar(perfil, size = '') {
         if (!perfil) return `<div class="avatar ${size}">?</div>`;
-        if (perfil.avatar_url) {
-          return `<img src="${perfil.avatar_url}" class="avatar ${size}" alt="${escapeHtml(perfil.username || '')}">`;
-        }
+        if (perfil.avatar_url) return `<img src="${perfil.avatar_url}" class="avatar ${size}" alt="">`;
         const inicial = (perfil.full_name || perfil.username || '?').charAt(0).toUpperCase();
         return `<div class="avatar ${size}">${inicial}</div>`;
       }
 
       // ============================================================
-      //  INICIALIZACIÓN
+      //  INICIO
       // ============================================================
       async function iniciar() {
         const { data: { session } } = await sb.auth.getSession();
-        if (!session) {
-          window.location.href = 'index.html';
-          return;
-        }
+        if (!session) return window.location.href = 'index.html';
         currentUser = session.user;
 
-        const { data: perfil } = await sb
-          .from('profiles')
-          .select('*')
-          .eq('id', currentUser.id)
-          .single();
-
+        const { data: perfil } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
         currentProfile = perfil;
 
         document.getElementById('user-name').textContent = perfil?.full_name || currentUser.email;
@@ -188,27 +197,24 @@
         document.getElementById('avatar-composer').outerHTML = renderAvatar(perfil);
 
         await cargarPosts();
+        await cargarNotificaciones();
+        enlazarNotificaciones();
       }
 
       // ============================================================
-      //  CARGAR POSTS (+ perfiles + likes + comentarios)
+      //  POSTS
       // ============================================================
       async function cargarPosts() {
         const contenedor = document.getElementById('posts-container');
 
-        // 1. Posts
-        const { data: posts, error: errorPosts } = await sb
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
+        const { data: posts, error } = await sb
+          .from('posts').select('*')
+          .order('created_at', { ascending: false }).limit(50);
 
-        if (errorPosts) {
-          console.error('Error al traer posts:', errorPosts);
+        if (error) {
           contenedor.innerHTML = `<div class="bg-red-50 text-red-700 p-4 rounded-xl text-sm">Error al cargar publicaciones.</div>`;
           return;
         }
-
         if (!posts || posts.length === 0) {
           contenedor.innerHTML = `
             <div class="bg-white rounded-2xl shadow p-8 text-center text-slate-400">
@@ -218,59 +224,38 @@
           return;
         }
 
-        // 2. Perfiles de autores
         const userIds = [...new Set(posts.map(p => p.user_id))];
-        const { data: profiles } = await sb
-          .from('profiles')
-          .select('*')
-          .in('id', userIds);
-
+        const { data: profiles } = await sb.from('profiles').select('*').in('id', userIds);
         const profilesMap = {};
         if (profiles) profiles.forEach(p => profilesMap[p.id] = p);
 
-        // 3. Likes
         const postIds = posts.map(p => p.id);
-        const { data: likes } = await sb
-          .from('likes')
-          .select('*')
-          .in('post_id', postIds);
 
+        const { data: likes } = await sb.from('likes').select('*').in('post_id', postIds);
         const likesMap = {};
-        if (likes) {
-          likes.forEach(l => {
-            if (!likesMap[l.post_id]) likesMap[l.post_id] = [];
-            likesMap[l.post_id].push(l);
-          });
-        }
+        if (likes) likes.forEach(l => {
+          if (!likesMap[l.post_id]) likesMap[l.post_id] = [];
+          likesMap[l.post_id].push(l);
+        });
 
-        // 4. Comentarios
         const { data: comments } = await sb
-          .from('comments')
-          .select('*')
-          .in('post_id', postIds)
+          .from('comments').select('*').in('post_id', postIds)
           .order('created_at', { ascending: true });
 
         const commentsMap = {};
         const commentUserIds = new Set();
-        if (comments) {
-          comments.forEach(c => {
-            if (!commentsMap[c.post_id]) commentsMap[c.post_id] = [];
-            commentsMap[c.post_id].push(c);
-            commentUserIds.add(c.user_id);
-          });
-        }
+        if (comments) comments.forEach(c => {
+          if (!commentsMap[c.post_id]) commentsMap[c.post_id] = [];
+          commentsMap[c.post_id].push(c);
+          commentUserIds.add(c.user_id);
+        });
 
-        // 5. Perfiles de comentaristas que no estén ya
         const otrosUserIds = [...commentUserIds].filter(id => !profilesMap[id]);
         if (otrosUserIds.length > 0) {
-          const { data: otrosPerfiles } = await sb
-            .from('profiles')
-            .select('*')
-            .in('id', otrosUserIds);
+          const { data: otrosPerfiles } = await sb.from('profiles').select('*').in('id', otrosUserIds);
           if (otrosPerfiles) otrosPerfiles.forEach(p => profilesMap[p.id] = p);
         }
 
-        // 6. Ensamblar
         const postsEnsamblados = posts.map(p => ({
           ...p,
           profiles: profilesMap[p.user_id] || null,
@@ -278,22 +263,16 @@
           comments: commentsMap[p.id] || []
         }));
 
-        // 7. Pintar
         contenedor.innerHTML = postsEnsamblados.map(p => renderPost(p, profilesMap)).join('');
         enlazarEventosPosts();
       }
 
-      // ============================================================
-      //  RENDER DE UN POST
-      // ============================================================
       function renderPost(post, profilesMap) {
         const autor = post.profiles || {};
         const likes = post.likes || [];
         const comments = post.comments || [];
         const meGusta = likes.some(l => l.user_id === currentUser.id);
-        const numLikes = likes.length;
         const esMio = post.user_id === currentUser.id;
-
         const comentariosVisibles = comments.slice(-2);
         const hayMasComentarios = comments.length > 2;
 
@@ -313,18 +292,15 @@
                   </svg>
                 </button>` : ''}
             </header>
-
             <p class="text-slate-700 whitespace-pre-wrap break-words mb-3">${escapeHtml(post.content || '')}</p>
-
-            ${post.image_url ? `<img src="${post.image_url}" class="rounded-xl max-h-96 w-full object-cover mb-3" alt="Publicación">` : ''}
-
+            ${post.image_url ? `<img src="${post.image_url}" class="rounded-xl max-h-96 w-full object-cover mb-3" alt="">` : ''}
             <footer class="flex items-center gap-4 pt-3 border-t border-slate-100 text-sm">
               <button class="btn-like flex items-center gap-1 transition ${meGusta ? 'text-red-500' : 'text-slate-500 hover:text-red-500'}">
                 <svg class="w-5 h-5" fill="${meGusta ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                 </svg>
-                <span>${numLikes || ''}</span>
+                <span>${likes.length || ''}</span>
               </button>
               <button class="btn-toggle-comments flex items-center gap-1 transition text-slate-500 hover:text-indigo-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -334,24 +310,15 @@
                 <span>${comments.length || ''}</span>
               </button>
             </footer>
-
-            <!-- Sección de comentarios -->
             <div class="comments-section mt-3 pt-3 border-t border-slate-100 hidden">
-              ${hayMasComentarios ? `
-                <button class="btn-ver-todos text-xs text-indigo-600 hover:underline mb-2">
-                  Ver los ${comments.length} comentarios
-                </button>` : ''}
-
-              <div class="comments-list space-y-2 ${hayMasComentarios ? '' : ''}">
+              ${hayMasComentarios ? `<button class="btn-ver-todos text-xs text-indigo-600 hover:underline mb-2">Ver los ${comments.length} comentarios</button>` : ''}
+              <div class="comments-list space-y-2">
                 ${comentariosVisibles.map(c => renderComentario(c, profilesMap[c.user_id])).join('')}
               </div>
-
               ${hayMasComentarios ? `
                 <div class="comments-all space-y-2 hidden">
                   ${comments.map(c => renderComentario(c, profilesMap[c.user_id])).join('')}
                 </div>` : ''}
-
-              <!-- Input nuevo comentario -->
               <div class="flex gap-2 mt-3 items-center">
                 ${renderAvatar(currentProfile, 'avatar-sm')}
                 <input type="text" placeholder="Escribe un comentario…" maxlength="300"
@@ -364,9 +331,6 @@
           </article>`;
       }
 
-      // ============================================================
-      //  RENDER DE UN COMENTARIO
-      // ============================================================
       function renderComentario(c, perfil) {
         const esMio = c.user_id === currentUser.id;
         return `
@@ -378,29 +342,18 @@
                   ${escapeHtml(perfil?.full_name || perfil?.username || 'Usuario')}
                   <span class="text-slate-400 font-normal ml-1">${tiempoRelativo(c.created_at)}</span>
                 </p>
-                ${esMio ? `
-                  <button class="btn-eliminar-comentario text-slate-300 hover:text-red-500 transition text-xs"
-                    title="Eliminar comentario">✕</button>` : ''}
+                ${esMio ? `<button class="btn-eliminar-comentario text-slate-300 hover:text-red-500 transition text-xs" title="Eliminar">✕</button>` : ''}
               </div>
               <p class="text-sm text-slate-700 break-words">${escapeHtml(c.content)}</p>
             </div>
           </div>`;
       }
 
-      // ============================================================
-      //  EVENTOS DE LOS POSTS
-      // ============================================================
       function enlazarEventosPosts() {
         document.querySelectorAll('article[data-post-id]').forEach(art => {
           const postId = Number(art.dataset.postId);
-
-          // Like
           art.querySelector('.btn-like')?.addEventListener('click', () => toggleLike(postId));
-
-          // Eliminar post
           art.querySelector('.btn-eliminar')?.addEventListener('click', () => eliminarPost(postId));
-
-          // Toggle comentarios
           art.querySelector('.btn-toggle-comments')?.addEventListener('click', () => {
             const section = art.querySelector('.comments-section');
             section.classList.toggle('hidden');
@@ -409,7 +362,6 @@
             }
           });
 
-          // Ver todos los comentarios
           const btnVerTodos = art.querySelector('.btn-ver-todos');
           const commentsList = art.querySelector('.comments-list');
           const commentsAll = art.querySelector('.comments-all');
@@ -419,14 +371,10 @@
             btnVerTodos.remove();
           });
 
-          // Input comentario
           const input = art.querySelector('.input-comentario');
           const btnEnviar = art.querySelector('.btn-enviar-comentario');
-
-          input?.addEventListener('input', () => {
-            btnEnviar.disabled = !input.value.trim();
-          });
-          input?.addEventListener('keydown', (e) => {
+          input?.addEventListener('input', () => btnEnviar.disabled = !input.value.trim());
+          input?.addEventListener('keydown', e => {
             if (e.key === 'Enter' && !btnEnviar.disabled) btnEnviar.click();
           });
           btnEnviar?.addEventListener('click', async () => {
@@ -436,32 +384,37 @@
             await agregarComentario(postId, texto);
           });
 
-          // Eliminar comentarios
           art.querySelectorAll('.btn-eliminar-comentario').forEach(btn => {
             btn.addEventListener('click', () => {
-              const commentDiv = btn.closest('[data-comment-id]');
-              const commentId = Number(commentDiv.dataset.commentId);
-              eliminarComentario(commentId);
+              const div = btn.closest('[data-comment-id]');
+              eliminarComentario(Number(div.dataset.commentId));
             });
           });
         });
       }
 
       // ============================================================
-      //  LIKE / UNLIKE
+      //  LIKE (+ NOTIFICACIÓN)
       // ============================================================
       async function toggleLike(postId) {
-        const { data: existente } = await sb
-          .from('likes')
-          .select('id')
-          .eq('post_id', postId)
-          .eq('user_id', currentUser.id)
-          .maybeSingle();
+        const { data: existente } = await sb.from('likes')
+          .select('id').eq('post_id', postId).eq('user_id', currentUser.id).maybeSingle();
 
         if (existente) {
           await sb.from('likes').delete().eq('id', existente.id);
         } else {
           await sb.from('likes').insert({ post_id: postId, user_id: currentUser.id });
+
+          // Crear notificación al autor (si no es uno mismo)
+          const { data: post } = await sb.from('posts').select('user_id').eq('id', postId).single();
+          if (post && post.user_id !== currentUser.id) {
+            await sb.from('notifications').insert({
+              user_id: post.user_id,
+              actor_id: currentUser.id,
+              type: 'like',
+              post_id: postId
+            });
+          }
         }
         await cargarPosts();
       }
@@ -470,44 +423,148 @@
       //  ELIMINAR POST
       // ============================================================
       async function eliminarPost(postId) {
-        if (!confirm('¿Eliminar esta publicación y todos sus comentarios?')) return;
+        if (!confirm('¿Eliminar esta publicación?')) return;
         const { error } = await sb.from('posts').delete().eq('id', postId);
-        if (error) {
-          mostrarToast('No se pudo eliminar', true);
-          return;
-        }
+        if (error) return mostrarToast('No se pudo eliminar', true);
         mostrarToast('Publicación eliminada');
         await cargarPosts();
       }
 
       // ============================================================
-      //  AGREGAR COMENTARIO
+      //  COMENTARIOS (+ NOTIFICACIÓN)
       // ============================================================
       async function agregarComentario(postId, content) {
         const { error } = await sb.from('comments').insert({
-          post_id: postId,
-          user_id: currentUser.id,
-          content
+          post_id: postId, user_id: currentUser.id, content
         });
-        if (error) {
-          console.error(error);
-          mostrarToast('Error al enviar comentario', true);
-          return;
+        if (error) return mostrarToast('Error al enviar comentario', true);
+
+        const { data: post } = await sb.from('posts').select('user_id').eq('id', postId).single();
+        if (post && post.user_id !== currentUser.id) {
+          await sb.from('notifications').insert({
+            user_id: post.user_id,
+            actor_id: currentUser.id,
+            type: 'comment',
+            post_id: postId
+          });
         }
         await cargarPosts();
       }
 
-      // ============================================================
-      //  ELIMINAR COMENTARIO
-      // ============================================================
       async function eliminarComentario(commentId) {
         if (!confirm('¿Eliminar este comentario?')) return;
         const { error } = await sb.from('comments').delete().eq('id', commentId);
+        if (error) return mostrarToast('No se pudo eliminar', true);
+        await cargarPosts();
+      }
+
+      // ============================================================
+      //  NOTIFICACIONES
+      // ============================================================
+      async function cargarNotificaciones() {
+        const { data, error } = await sb.from('notifications')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(30);
+
         if (error) {
-          mostrarToast('No se pudo eliminar', true);
+          console.error(error);
           return;
         }
-        await cargarPosts();
+        notificaciones = data || [];
+        pintarNotificaciones();
+      }
+
+      async function pintarNotificaciones() {
+        const listEl = document.getElementById('notif-list');
+        const countEl = document.getElementById('notif-count');
+        const noLeidas = notificaciones.filter(n => !n.is_read);
+
+        if (noLeidas.length > 0) {
+          countEl.textContent = noLeidas.length > 99 ? '99+' : noLeidas.length;
+          countEl.classList.remove('hidden');
+        } else {
+          countEl.classList.add('hidden');
+        }
+
+        if (notificaciones.length === 0) {
+          listEl.innerHTML = `<p class="text-center text-slate-400 text-sm py-6">Sin notificaciones.</p>`;
+          return;
+        }
+
+        // Perfiles de los actores
+        const actorIds = [...new Set(notificaciones.map(n => n.actor_id))];
+        const { data: perfiles } = await sb.from('profiles').select('*').in('id', actorIds);
+        const perfilesMap = {};
+        if (perfiles) perfiles.forEach(p => perfilesMap[p.id] = p);
+
+        listEl.innerHTML = notificaciones.map(n => {
+          const actor = perfilesMap[n.actor_id] || { full_name: 'Usuario', username: 'usuario' };
+          let texto = '';
+          let emoji = '';
+
+          if (n.type === 'like') {
+            emoji = '❤️';
+            texto = `<strong>${escapeHtml(actor.full_name || actor.username)}</strong> le dio like a tu publicación`;
+          } else if (n.type === 'comment') {
+            emoji = '💬';
+            texto = `<strong>${escapeHtml(actor.full_name || actor.username)}</strong> comentó en tu publicación`;
+          } else if (n.type === 'friend_request') {
+            emoji = '👥';
+            texto = `<strong>${escapeHtml(actor.full_name || actor.username)}</strong> te envió una solicitud de amistad`;
+          } else if (n.type === 'friend_accepted') {
+            emoji = '🎉';
+            texto = `<strong>${escapeHtml(actor.full_name || actor.username)}</strong> aceptó tu solicitud`;
+          }
+
+          return `
+            <div class="p-3 hover:bg-slate-50 cursor-pointer transition ${!n.is_read ? 'bg-indigo-50/40' : ''}">
+              <div class="flex items-start gap-3">
+                <div class="text-xl mt-0.5">${emoji}</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm text-slate-700 leading-snug">${texto}</p>
+                  <p class="text-xs text-slate-400 mt-1">${tiempoRelativo(n.created_at)}</p>
+                </div>
+                ${!n.is_read ? '<div class="w-2 h-2 rounded-full bg-indigo-500 mt-2"></div>' : ''}
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      function enlazarNotificaciones() {
+        const btnNotif = document.getElementById('btn-notif');
+        const panel = document.getElementById('notif-panel');
+        const btnMarcarLeidas = document.getElementById('btn-marcar-leidas');
+
+        btnNotif.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          panel.classList.toggle('hidden');
+          // Marcar como leídas al abrir
+          if (!panel.classList.contains('hidden')) {
+            await marcarTodasLeidas();
+          }
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!panel.contains(e.target) && e.target !== btnNotif) {
+            panel.classList.add('hidden');
+          }
+        });
+
+        btnMarcarLeidas.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await marcarTodasLeidas();
+        });
+      }
+
+      async function marcarTodasLeidas() {
+        const noLeidas = notificaciones.filter(n => !n.is_read);
+        if (noLeidas.length === 0) return;
+        await sb.from('notifications').update({ is_read: true })
+          .in('id', noLeidas.map(n => n.id));
+        notificaciones = notificaciones.map(n => ({ ...n, is_read: true }));
+        pintarNotificaciones();
       }
 
       // ============================================================
@@ -560,11 +617,7 @@
         btn.disabled = false;
         btn.textContent = 'Publicar';
 
-        if (error) {
-          console.error(error);
-          mostrarToast('Error al publicar', true);
-          return;
-        }
+        if (error) return mostrarToast('Error al publicar', true);
 
         document.getElementById('post-content').value = '';
         imagenBase64 = '';
@@ -581,6 +634,11 @@
         await sb.auth.signOut();
         window.location.href = 'index.html';
       });
+
+      // Refrescar notificaciones cada 30 segundos
+      setInterval(async () => {
+        if (currentUser) await cargarNotificaciones();
+      }, 30000);
 
       iniciar();
     })();
