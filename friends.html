@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Social 131 — Amigos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #1a1a2e; color: white; padding: 10px 24px; border-radius: 30px;
+      font-size: 0.9rem; z-index: 9999; opacity: 0; transition: all 0.3s ease;
+      pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: bold; font-size: 0.9rem; flex-shrink: 0;
+    }
+    .avatar-lg { width: 56px; height: 56px; font-size: 1.3rem; }
+    .tab-active { background: #4f46e5; color: white; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100">
+
+  <!-- Header -->
+  <header class="bg-white shadow sticky top-0 z-20">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <a href="feed.html" class="text-indigo-600 font-medium text-sm">← Volver al muro</a>
+      <h1 class="text-lg font-bold text-slate-800">👥 Amigos</h1>
+      <div class="w-16"></div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto p-4 space-y-4">
+
+    <!-- Buscador -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold text-slate-800 mb-3">🔍 Buscar usuarios</h2>
+      <input id="input-busqueda" type="text" placeholder="Escribe un nombre o @usuario..."
+        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      <div id="resultados-busqueda" class="mt-3 space-y-2"></div>
+    </section>
+
+    <!-- Pestañas -->
+    <section class="bg-white rounded-2xl shadow overflow-hidden">
+      <div class="flex border-b border-slate-200">
+        <button data-tab="solicitudes" class="tab-btn flex-1 py-3 text-sm font-medium text-slate-500 hover:bg-slate-50 transition">
+          📩 Solicitudes <span id="badge-solicitudes" class="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 hidden">0</span>
+        </button>
+        <button data-tab="amigos" class="tab-btn flex-1 py-3 text-sm font-medium text-slate-500 hover:bg-slate-50 transition">
+          👥 Mis amigos
+        </button>
+        <button data-tab="enviadas" class="tab-btn flex-1 py-3 text-sm font-medium text-slate-500 hover:bg-slate-50 transition">
+          📤 Enviadas
+        </button>
+      </div>
+
+      <!-- Panel solicitudes -->
+      <div id="panel-solicitudes" class="panel p-4 space-y-3"></div>
+
+      <!-- Panel amigos -->
+      <div id="panel-amigos" class="panel p-4 space-y-3 hidden"></div>
+
+      <!-- Panel enviadas -->
+      <div id="panel-enviadas" class="panel p-4 space-y-3 hidden"></div>
+    </section>
+
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    (function() {
+      // ============================================================
+      //  CONFIGURACIÓN
+      // ============================================================
+      const SUPABASE_URL = 'https://dqzxxwnkkoiefkwxtnnt.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxenh4d25ra29pZWZrd3h0bm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MDkwMTEsImV4cCI6MjEwNDQ4NTAxMX0.TnByaHcgrPTrKr2y5PhpFLNXlYlylOGOIP9B_t7s7tE';
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      let currentUser = null;
+      let currentProfile = null;
+      let todosLosPerfiles = [];
+      let relaciones = [];
+      let idsAmigos = new Set();
+      let idsSolicitudesEnviadas = new Set();
+
+      // ============================================================
+      //  UTILIDADES
+      // ============================================================
+      const toastEl = document.getElementById('toast');
+      let toastTimer;
+      function mostrarToast(msg, esError = false) {
+        toastEl.textContent = msg;
+        toastEl.style.background = esError ? '#991b1b' : '#1a1a2e';
+        toastEl.classList.add('visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 2500);
+      }
+
+      function escapeHtml(t) {
+        const d = document.createElement('div');
+        d.textContent = t || '';
+        return d.innerHTML;
+      }
+
+      function renderAvatar(perfil, size = '') {
+        if (!perfil) return `<div class="avatar ${size}">?</div>`;
+        if (perfil.avatar_url) {
+          return `<img src="${perfil.avatar_url}" class="avatar ${size}" alt="">`;
+        }
+        const inicial = (perfil.full_name || perfil.username || '?').charAt(0).toUpperCase();
+        return `<div class="avatar ${size}">${inicial}</div>`;
+      }
+
+      // ============================================================
+      //  INICIO
+      // ============================================================
+      async function iniciar() {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return window.location.href = 'index.html';
+        currentUser = session.user;
+
+        const { data: perfil } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+        currentProfile = perfil;
+
+        await cargarTodo();
+        pintarTodo();
+        enlazarPestanas();
+        enlazarBusqueda();
+      }
+
+      async function cargarTodo() {
+        // Todos los perfiles (para buscar y para mapear IDs)
+        const { data: perfiles } = await sb.from('profiles').select('*');
+        todosLosPerfiles = (perfiles || []).filter(p => p.id !== currentUser.id);
+
+        // Mis relaciones (como requester o addressee)
+        const { data: rels } = await sb
+          .from('friendships')
+          .select('*')
+          .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
+
+        relaciones = rels || [];
+
+        // Índices rápidos
+        idsAmigos = new Set();
+        idsSolicitudesEnviadas = new Set();
+
+        relaciones.forEach(r => {
+          if (r.status === 'accepted') {
+            idsAmigos.add(r.requester_id === currentUser.id ? r.addressee_id : r.requester_id);
+          } else if (r.status === 'pending') {
+            if (r.requester_id === currentUser.id) {
+              idsSolicitudesEnviadas.add(r.addressee_id);
+            }
+          }
+        });
+      }
+
+      // ============================================================
+      //  PINTAR
+      // ============================================================
+      function pintarTodo() {
+        pintarSolicitudes();
+        pintarAmigos();
+        pintarEnviadas();
+      }
+
+      function getPerfil(id) {
+        return todosLosPerfiles.find(p => p.id === id) ||
+               { id, full_name: 'Usuario', username: 'usuario', avatar_url: null };
+      }
+
+      // --- Solicitudes recibidas ---
+      function pintarSolicitudes() {
+        const panel = document.getElementById('panel-solicitudes');
+        const pendientes = relaciones.filter(r =>
+          r.status === 'pending' && r.addressee_id === currentUser.id
+        );
+
+        const badge = document.getElementById('badge-solicitudes');
+        if (pendientes.length > 0) {
+          badge.textContent = pendientes.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+
+        if (pendientes.length === 0) {
+          panel.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">No tienes solicitudes pendientes.</p>`;
+          return;
+        }
+
+        panel.innerHTML = pendientes.map(r => {
+          const p = getPerfil(r.requester_id);
+          return `
+            <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50">
+              ${renderAvatar(p)}
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-sm text-slate-800 truncate">${escapeHtml(p.full_name || p.username)}</p>
+                <p class="text-xs text-slate-400">@${escapeHtml(p.username)}</p>
+              </div>
+              <button class="btn-aceptar bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg" data-id="${r.id}">
+                Aceptar
+              </button>
+              <button class="btn-rechazar bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg" data-id="${r.id}">
+                Rechazar
+              </button>
+            </div>`;
+        }).join('');
+
+        panel.querySelectorAll('.btn-aceptar').forEach(b =>
+          b.addEventListener('click', () => aceptarSolicitud(Number(b.dataset.id))));
+        panel.querySelectorAll('.btn-rechazar').forEach(b =>
+          b.addEventListener('click', () => rechazarSolicitud(Number(b.dataset.id))));
+      }
+
+      // --- Amigos ---
+      function pintarAmigos() {
+        const panel = document.getElementById('panel-amigos');
+        const amigos = [...idsAmigos].map(getPerfil);
+
+        if (amigos.length === 0) {
+          panel.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">Aún no tienes amigos agregados.</p>`;
+          return;
+        }
+
+        panel.innerHTML = amigos.map(p => `
+          <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50">
+            ${renderAvatar(p)}
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-sm text-slate-800 truncate">${escapeHtml(p.full_name || p.username)}</p>
+              <p class="text-xs text-slate-400">@${escapeHtml(p.username)}</p>
+            </div>
+            <button class="btn-eliminar-amigo text-red-500 hover:text-red-700 text-xs font-medium" data-id="${p.id}">
+              Eliminar
+            </button>
+          </div>`).join('');
+
+        panel.querySelectorAll('.btn-eliminar-amigo').forEach(b =>
+          b.addEventListener('click', () => eliminarAmigo(b.dataset.id)));
+      }
+
+      // --- Solicitudes enviadas ---
+      function pintarEnviadas() {
+        const panel = document.getElementById('panel-enviadas');
+        const enviadas = relaciones.filter(r =>
+          r.status === 'pending' && r.requester_id === currentUser.id
+        );
+
+        if (enviadas.length === 0) {
+          panel.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">No has enviado solicitudes pendientes.</p>`;
+          return;
+        }
+
+        panel.innerHTML = enviadas.map(r => {
+          const p = getPerfil(r.addressee_id);
+          return `
+            <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50">
+              ${renderAvatar(p)}
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-sm text-slate-800 truncate">${escapeHtml(p.full_name || p.username)}</p>
+                <p class="text-xs text-slate-400">@${escapeHtml(p.username)} · Pendiente</p>
+              </div>
+              <button class="btn-cancelar-solicitud text-slate-500 hover:text-red-500 text-xs font-medium" data-id="${r.id}">
+                Cancelar
+              </button>
+            </div>`;
+        }).join('');
+
+        panel.querySelectorAll('.btn-cancelar-solicitud').forEach(b =>
+          b.addEventListener('click', () => cancelarSolicitud(Number(b.dataset.id))));
+      }
+
+      // ============================================================
+      //  PESTAÑAS
+      // ============================================================
+      function enlazarPestanas() {
+        const botones = document.querySelectorAll('.tab-btn');
+        const paneles = {
+          solicitudes: document.getElementById('panel-solicitudes'),
+          amigos: document.getElementById('panel-amigos'),
+          enviadas: document.getElementById('panel-enviadas')
+        };
+
+        function activar(tab) {
+          botones.forEach(b => b.classList.remove('tab-active'));
+          Object.values(paneles).forEach(p => p.classList.add('hidden'));
+          document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('tab-active');
+          paneles[tab].classList.remove('hidden');
+        }
+
+        botones.forEach(b => b.addEventListener('click', () => activar(b.dataset.tab)));
+        activar('solicitudes');
+      }
+
+      // ============================================================
+      //  BUSCADOR
+      // ============================================================
+      function enlazarBusqueda() {
+        const input = document.getElementById('input-busqueda');
+        const contenedor = document.getElementById('resultados-busqueda');
+
+        input.addEventListener('input', () => {
+          const q = input.value.trim().toLowerCase();
+          if (!q) {
+            contenedor.innerHTML = '';
+            return;
+          }
+
+          const resultados = todosLosPerfiles.filter(p =>
+            (p.full_name || '').toLowerCase().includes(q) ||
+            (p.username || '').toLowerCase().includes(q)
+          ).slice(0, 10);
+
+          if (resultados.length === 0) {
+            contenedor.innerHTML = `<p class="text-center text-slate-400 text-sm py-3">Sin resultados.</p>`;
+            return;
+          }
+
+          contenedor.innerHTML = resultados.map(p => {
+            const esAmigo = idsAmigos.has(p.id);
+            const enviada = idsSolicitudesEnviadas.has(p.id);
+            const pendienteRecibida = relaciones.some(r =>
+              r.status === 'pending' && r.addressee_id === currentUser.id && r.requester_id === p.id);
+
+            let boton;
+            if (esAmigo) {
+              boton = `<span class="text-xs text-emerald-600 font-medium px-3 py-1.5">✓ Amigos</span>`;
+            } else if (enviada) {
+              boton = `<span class="text-xs text-slate-400 px-3 py-1.5">Solicitud enviada</span>`;
+            } else if (pendienteRecibida) {
+              boton = `<span class="text-xs text-indigo-600 font-medium px-3 py-1.5">Te envió solicitud</span>`;
+            } else {
+              boton = `<button class="btn-agregar bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg" data-id="${p.id}">
+                + Agregar
+              </button>`;
+            }
+
+            return `
+              <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50">
+                ${renderAvatar(p)}
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-sm text-slate-800 truncate">${escapeHtml(p.full_name || p.username)}</p>
+                  <p class="text-xs text-slate-400">@${escapeHtml(p.username)}</p>
+                </div>
+                ${boton}
+              </div>`;
+          }).join('');
+
+          contenedor.querySelectorAll('.btn-agregar').forEach(b =>
+            b.addEventListener('click', () => enviarSolicitud(b.dataset.id)));
+        });
+      }
+
+      // ============================================================
+      //  ACCIONES
+      // ============================================================
+      async function enviarSolicitud(addresseeId) {
+        const { data, error } = await sb.from('friendships')
+          .insert({ requester_id: currentUser.id, addressee_id: addresseeId, status: 'pending' })
+          .select()
+          .single();
+
+        if (error) {
+          console.error(error);
+          mostrarToast('No se pudo enviar la solicitud', true);
+          return;
+        }
+
+        // Notificación para el receptor
+        await sb.from('notifications').insert({
+          user_id: addresseeId,
+          actor_id: currentUser.id,
+          type: 'friend_request',
+          friendship_id: data.id
+        });
+
+        mostrarToast('Solicitud enviada ✔');
+        await cargarTodo();
+        pintarTodo();
+        document.getElementById('input-busqueda').dispatchEvent(new Event('input'));
+      }
+
+      async function aceptarSolicitud(friendshipId) {
+        const rel = relaciones.find(r => r.id === friendshipId);
+        const { error } = await sb.from('friendships')
+          .update({ status: 'accepted' })
+          .eq('id', friendshipId);
+
+        if (error) {
+          mostrarToast('No se pudo aceptar', true);
+          return;
+        }
+
+        await sb.from('notifications').insert({
+          user_id: rel.requester_id,
+          actor_id: currentUser.id,
+          type: 'friend_accepted',
+          friendship_id: friendshipId
+        });
+
+        mostrarToast('¡Ahora son amigos! ✔');
+        await cargarTodo();
+        pintarTodo();
+      }
+
+      async function rechazarSolicitud(friendshipId) {
+        const { error } = await sb.from('friendships').delete().eq('id', friendshipId);
+        if (error) return mostrarToast('Error al rechazar', true);
+        mostrarToast('Solicitud rechazada');
+        await cargarTodo();
+        pintarTodo();
+      }
+
+      async function cancelarSolicitud(friendshipId) {
+        const { error } = await sb.from('friendships').delete().eq('id', friendshipId);
+        if (error) return mostrarToast('Error al cancelar', true);
+        mostrarToast('Solicitud cancelada');
+        await cargarTodo();
+        pintarTodo();
+      }
+
+      async function eliminarAmigo(amigoId) {
+        if (!confirm('¿Eliminar a este amigo?')) return;
+        const rel = relaciones.find(r =>
+          r.status === 'accepted' &&
+          ((r.requester_id === currentUser.id && r.addressee_id === amigoId) ||
+           (r.requester_id === amigoId && r.addressee_id === currentUser.id))
+        );
+        if (!rel) return;
+        const { error } = await sb.from('friendships').delete().eq('id', rel.id);
+        if (error) return mostrarToast('Error al eliminar', true);
+        mostrarToast('Amigo eliminado');
+        await cargarTodo();
+        pintarTodo();
+      }
+
+      iniciar();
+    })();
+  </script>
+</body>
+</html>
