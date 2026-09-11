@@ -64,7 +64,6 @@
             <span id="notif-count" class="notif-badge hidden">0</span>
           </button>
 
-          <!-- Panel desplegable -->
           <div id="notif-panel" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 max-h-96 overflow-y-auto z-30">
             <div class="p-3 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white">
               <h3 class="font-semibold text-slate-800 text-sm">🔔 Notificaciones</h3>
@@ -84,7 +83,6 @@
       </div>
     </div>
 
-    <!-- Menú móvil -->
     <nav class="md:hidden flex items-center gap-1 px-4 pb-3 text-xs overflow-x-auto">
       <a href="feed.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">Muro</a>
       <a href="friends.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">👥 Amigos</a>
@@ -99,7 +97,6 @@
   </header>
 
   <main class="max-w-2xl mx-auto p-4 space-y-4">
-
     <section class="bg-white rounded-2xl shadow p-4">
       <div class="flex gap-3">
         <div id="avatar-composer" class="avatar">?</div>
@@ -184,7 +181,7 @@
       }
 
       // ============================================================
-      //  INICIO
+      //  INICIO (con Realtime DENTRO)
       // ============================================================
       async function iniciar() {
         const { data: { session } } = await sb.auth.getSession();
@@ -201,15 +198,21 @@
         await cargarPosts();
         await cargarNotificaciones();
         enlazarNotificaciones();
+
+        // ✅ Realtime: ahora sí, después de que currentUser está listo
+        sb.channel('feed-realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' },
+              () => { if (currentUser) cargarPosts(); })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' },
+              () => { if (currentUser) cargarPosts(); })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' },
+              () => { if (currentUser) cargarPosts(); })
+          .on('postgres_changes',
+              { event: 'INSERT', schema: 'public', table: 'notifications',
+                filter: `user_id=eq.${currentUser.id}` },
+              () => { if (currentUser) cargarNotificaciones(); })
+          .subscribe();
       }
-      // Realtime: recargar posts cuando alguien publique/comente/dé like
-sb.channel('feed-realtime')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => cargarPosts())
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => cargarPosts())
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => cargarPosts())
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications',
-      filter: `user_id=eq.${currentUser.id}` }, () => cargarNotificaciones())
-  .subscribe();
 
       // ============================================================
       //  POSTS
@@ -403,9 +406,6 @@ sb.channel('feed-realtime')
         });
       }
 
-      // ============================================================
-      //  LIKE (+ NOTIFICACIÓN)
-      // ============================================================
       async function toggleLike(postId) {
         const { data: existente } = await sb.from('likes')
           .select('id').eq('post_id', postId).eq('user_id', currentUser.id).maybeSingle();
@@ -414,24 +414,16 @@ sb.channel('feed-realtime')
           await sb.from('likes').delete().eq('id', existente.id);
         } else {
           await sb.from('likes').insert({ post_id: postId, user_id: currentUser.id });
-
-          // Crear notificación al autor (si no es uno mismo)
           const { data: post } = await sb.from('posts').select('user_id').eq('id', postId).single();
           if (post && post.user_id !== currentUser.id) {
             await sb.from('notifications').insert({
-              user_id: post.user_id,
-              actor_id: currentUser.id,
-              type: 'like',
-              post_id: postId
+              user_id: post.user_id, actor_id: currentUser.id, type: 'like', post_id: postId
             });
           }
         }
         await cargarPosts();
       }
 
-      // ============================================================
-      //  ELIMINAR POST
-      // ============================================================
       async function eliminarPost(postId) {
         if (!confirm('¿Eliminar esta publicación?')) return;
         const { error } = await sb.from('posts').delete().eq('id', postId);
@@ -440,9 +432,6 @@ sb.channel('feed-realtime')
         await cargarPosts();
       }
 
-      // ============================================================
-      //  COMENTARIOS (+ NOTIFICACIÓN)
-      // ============================================================
       async function agregarComentario(postId, content) {
         const { error } = await sb.from('comments').insert({
           post_id: postId, user_id: currentUser.id, content
@@ -452,10 +441,7 @@ sb.channel('feed-realtime')
         const { data: post } = await sb.from('posts').select('user_id').eq('id', postId).single();
         if (post && post.user_id !== currentUser.id) {
           await sb.from('notifications').insert({
-            user_id: post.user_id,
-            actor_id: currentUser.id,
-            type: 'comment',
-            post_id: postId
+            user_id: post.user_id, actor_id: currentUser.id, type: 'comment', post_id: postId
           });
         }
         await cargarPosts();
@@ -468,9 +454,6 @@ sb.channel('feed-realtime')
         await cargarPosts();
       }
 
-      // ============================================================
-      //  NOTIFICACIONES
-      // ============================================================
       async function cargarNotificaciones() {
         const { data, error } = await sb.from('notifications')
           .select('*')
@@ -478,10 +461,7 @@ sb.channel('feed-realtime')
           .order('created_at', { ascending: false })
           .limit(30);
 
-        if (error) {
-          console.error(error);
-          return;
-        }
+        if (error) { console.error(error); return; }
         notificaciones = data || [];
         pintarNotificaciones();
       }
@@ -503,7 +483,6 @@ sb.channel('feed-realtime')
           return;
         }
 
-        // Perfiles de los actores
         const actorIds = [...new Set(notificaciones.map(n => n.actor_id))];
         const { data: perfiles } = await sb.from('profiles').select('*').in('id', actorIds);
         const perfilesMap = {};
@@ -511,8 +490,7 @@ sb.channel('feed-realtime')
 
         listEl.innerHTML = notificaciones.map(n => {
           const actor = perfilesMap[n.actor_id] || { full_name: 'Usuario', username: 'usuario' };
-          let texto = '';
-          let emoji = '';
+          let texto = '', emoji = '';
 
           if (n.type === 'like') {
             emoji = '❤️';
@@ -550,7 +528,6 @@ sb.channel('feed-realtime')
         btnNotif.addEventListener('click', async (e) => {
           e.stopPropagation();
           panel.classList.toggle('hidden');
-          // Marcar como leídas al abrir
           if (!panel.classList.contains('hidden')) {
             await marcarTodasLeidas();
           }
@@ -576,18 +553,7 @@ sb.channel('feed-realtime')
         notificaciones = notificaciones.map(n => ({ ...n, is_read: true }));
         pintarNotificaciones();
       }
-      // Realtime: recargar posts cuando alguien publique/comente/dé like
-sb.channel('feed-realtime')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => cargarPosts())
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => cargarPosts())
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => cargarPosts())
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications',
-      filter: `user_id=eq.${currentUser.id}` }, () => cargarNotificaciones())
-  .subscribe();
 
-      // ============================================================
-      //  CREAR POST
-      // ============================================================
       const inputImagen = document.getElementById('post-image');
       const previewWrap = document.getElementById('post-image-preview');
       const previewImg = document.getElementById('post-image-preview-img');
@@ -645,15 +611,11 @@ sb.channel('feed-realtime')
         await cargarPosts();
       });
 
-      // ============================================================
-      //  CERRAR SESIÓN
-      // ============================================================
       document.getElementById('btn-logout').addEventListener('click', async () => {
         await sb.auth.signOut();
         window.location.href = 'index.html';
       });
 
-      // Refrescar notificaciones cada 30 segundos
       setInterval(async () => {
         if (currentUser) await cargarNotificaciones();
       }, 30000);
