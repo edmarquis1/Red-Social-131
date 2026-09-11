@@ -19,7 +19,7 @@
       width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
       background: linear-gradient(135deg, #6366f1, #ec4899);
       display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: bold; font-size: 0.9rem;
+      color: white; font-weight: bold; font-size: 0.9rem; flex-shrink: 0;
     }
     .avatar-lg { width: 48px; height: 48px; font-size: 1.1rem; }
   </style>
@@ -29,7 +29,7 @@
   <!-- Header -->
   <header class="bg-white shadow sticky top-0 z-20">
     <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-      <h1 class="text-lg sm:text-xl font-bold text-indigo-600">Mi Red Social</h1>
+      <h1 class="text-lg sm:text-xl font-bold text-indigo-600">🌐 Mi Red Social</h1>
       <div class="flex items-center gap-3">
         <a href="profile.html" id="link-perfil" class="flex items-center gap-2 hover:bg-slate-100 px-2 py-1 rounded-lg transition">
           <div id="avatar-header" class="avatar">?</div>
@@ -100,9 +100,9 @@
       // ============================================================
       //  ESTADO GLOBAL
       // ============================================================
-      let currentUser = null;       // Sesión actual
-      let currentProfile = null;    // Datos del perfil actual
-      let imagenBase64 = '';        // Imagen temporal del composer
+      let currentUser = null;
+      let currentProfile = null;
+      let imagenBase64 = '';
 
       // ============================================================
       //  UTILIDADES
@@ -137,7 +137,7 @@
       function renderAvatar(perfil, size = '') {
         if (!perfil) return `<div class="avatar ${size}">?</div>`;
         if (perfil.avatar_url) {
-          return `<img src="${perfil.avatar_url}" class="avatar ${size}" alt="${escapeHtml(perfil.username)}">`;
+          return `<img src="${perfil.avatar_url}" class="avatar ${size}" alt="${escapeHtml(perfil.username || '')}">`;
         }
         const inicial = (perfil.full_name || perfil.username || '?').charAt(0).toUpperCase();
         return `<div class="avatar ${size}">${inicial}</div>`;
@@ -154,7 +154,6 @@
         }
         currentUser = session.user;
 
-        // Cargar perfil del usuario
         const { data: perfil } = await sb
           .from('profiles')
           .select('*')
@@ -163,22 +162,20 @@
 
         currentProfile = perfil;
 
-        // Actualizar UI del header
         document.getElementById('user-name').textContent = perfil?.full_name || currentUser.email;
         document.getElementById('avatar-header').outerHTML = renderAvatar(perfil);
         document.getElementById('avatar-composer').outerHTML = renderAvatar(perfil);
 
-        // Cargar publicaciones
         await cargarPosts();
       }
 
-        // ============================================================
-      //  CARGAR POSTS (Versión corregida sin errores 400)
+      // ============================================================
+      //  CARGAR POSTS (SIN JOINS - 3 CONSULTAS SEPARADAS)
       // ============================================================
       async function cargarPosts() {
         const contenedor = document.getElementById('posts-container');
 
-        // 1. Traer los posts (sin joins problemáticos)
+        // 1. Traer los posts
         const { data: posts, error: errorPosts } = await sb
           .from('posts')
           .select('*')
@@ -200,9 +197,9 @@
           return;
         }
 
-        // 2. Traer los perfiles de los autores de esos posts
+        // 2. Traer los perfiles de los autores
         const userIds = [...new Set(posts.map(p => p.user_id))];
-        const { data: profiles, error: errorProfiles } = await sb
+        const { data: profiles } = await sb
           .from('profiles')
           .select('*')
           .in('id', userIds);
@@ -212,7 +209,7 @@
 
         // 3. Traer los likes de esos posts
         const postIds = posts.map(p => p.id);
-        const { data: likes, error: errorLikes } = await sb
+        const { data: likes } = await sb
           .from('likes')
           .select('*')
           .in('post_id', postIds);
@@ -225,14 +222,14 @@
           });
         }
 
-        // 4. Ensamblar todo en un solo objeto para el render
+        // 4. Ensamblar
         const postsEnsamblados = posts.map(p => ({
           ...p,
           profiles: profilesMap[p.user_id] || null,
           likes: likesMap[p.id] || []
         }));
 
-        // 5. Pintar en pantalla
+        // 5. Pintar
         contenedor.innerHTML = postsEnsamblados.map(p => renderPost(p)).join('');
         enlazarEventosPosts();
       }
@@ -264,7 +261,7 @@
                 </button>` : ''}
             </header>
 
-            <p class="text-slate-700 whitespace-pre-wrap break-words mb-3">${escapeHtml(post.content)}</p>
+            <p class="text-slate-700 whitespace-pre-wrap break-words mb-3">${escapeHtml(post.content || '')}</p>
 
             ${post.image_url ? `<img src="${post.image_url}" class="rounded-xl max-h-96 w-full object-cover mb-3" alt="Publicación">` : ''}
 
@@ -286,17 +283,15 @@
       function enlazarEventosPosts() {
         document.querySelectorAll('article[data-post-id]').forEach(art => {
           const id = Number(art.dataset.postId);
-
           art.querySelector('.btn-like')?.addEventListener('click', () => toggleLike(id));
           art.querySelector('.btn-eliminar')?.addEventListener('click', () => eliminarPost(id));
         });
       }
 
       // ============================================================
-      //  DAR / QUITAR LIKE
+      //  LIKE / UNLIKE
       // ============================================================
       async function toggleLike(postId) {
-        // Ver si ya tiene like
         const { data: existente } = await sb
           .from('likes')
           .select('id')
