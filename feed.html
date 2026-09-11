@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Social 131 </title>
+  <title>Social 131</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -22,50 +22,47 @@
       color: white; font-weight: bold; font-size: 0.9rem; flex-shrink: 0;
     }
     .avatar-lg { width: 48px; height: 48px; font-size: 1.1rem; }
+    .avatar-sm { width: 32px; height: 32px; font-size: 0.75rem; }
   </style>
 </head>
 <body class="min-h-screen bg-slate-100">
 
   <!-- Header -->
- <header class="bg-white shadow sticky top-0 z-20">
-  <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
-    <a href="feed.html" class="text-lg sm:text-xl font-bold text-indigo-600 whitespace-nowrap">Red131</a>
+  <header class="bg-white shadow sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <a href="feed.html" class="text-lg sm:text-xl font-bold text-indigo-600 whitespace-nowrap">Red131</a>
 
-    <!-- Menú desktop -->
-    <nav class="hidden md:flex items-center gap-1 text-sm">
-      <a href="feed.html" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">Muro</a>
+      <!-- Menú desktop -->
+      <nav class="hidden md:flex items-center gap-1 text-sm">
+        <a href="feed.html" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">Muro</a>
+        <a href="https://edmarquis1.github.io/REGISTRO-DE-DE-ESTUDIANTES/" target="_blank"
+           class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">🎓 Estudiantes</a>
+        <a href="https://edmarquis1.github.io/Usalesiana/" target="_blank"
+           class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">🧮 Calculadora</a>
+        <a href="https://edmarquis1.github.io/PERFILES/" target="_blank"
+           class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">🐾 Mascotas</a>
+      </nav>
 
-      <!-- 🔗 Enlaces a repositorios externos -->
-      <a href="https://tusuario.github.io/registro-estudiantes/" target="_blank"
-         class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">🎓 Estudiantes</a>
-
-      <a href="https://tusuario.github.io/calculadora/" target="_blank"
-         class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">🧮 Calculadora</a>
-
-      <a href="https://tusuario.github.io/perritos/" target="_blank"
-         class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">🐾 Mascotas</a>
-    </nav>
-
-    <div class="flex items-center gap-2">
-      <a href="profile.html" id="link-perfil" class="flex items-center gap-2 hover:bg-slate-100 px-2 py-1 rounded-lg transition">
-        <div id="avatar-header" class="avatar">?</div>
-        <span id="user-name" class="text-sm text-slate-700 hidden sm:inline"></span>
-      </a>
-      <button id="btn-logout" class="text-sm text-red-500 hover:text-red-700 font-medium">Salir</button>
+      <div class="flex items-center gap-2">
+        <a href="profile.html" id="link-perfil" class="flex items-center gap-2 hover:bg-slate-100 px-2 py-1 rounded-lg transition">
+          <div id="avatar-header" class="avatar">?</div>
+          <span id="user-name" class="text-sm text-slate-700 hidden sm:inline"></span>
+        </a>
+        <button id="btn-logout" class="text-sm text-red-500 hover:text-red-700 font-medium">Salir</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Menú móvil -->
-  <nav class="md:hidden flex items-center gap-1 px-4 pb-3 text-xs overflow-x-auto">
-    <a href="feed.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">Muro</a>
-    <a href="https://edmarquis1.github.io/REGISTRO-DE-DE-ESTUDIANTES/" target="_blank"
-       class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">🎓 Estudiantes</a>
-    <a href="https://edmarquis1.github.io/Usalesiana/" target="_blank"
-       class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">🧮 Calculadora</a>
-    <a href="https://edmarquis1.github.io/PERFILES/" target="_blank"
-       class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">🐾 Mascotas</a>
-  </nav>
-</header>
+    <!-- Menú móvil -->
+    <nav class="md:hidden flex items-center gap-1 px-4 pb-3 text-xs overflow-x-auto">
+      <a href="feed.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">Muro</a>
+      <a href="https://edmarquis1.github.io/REGISTRO-DE-DE-ESTUDIANTES/" target="_blank"
+         class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">🎓 Estudiantes</a>
+      <a href="https://edmarquis1.github.io/Usalesiana/" target="_blank"
+         class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">🧮 Calculadora</a>
+      <a href="https://edmarquis1.github.io/PERFILES/" target="_blank"
+         class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">🐾 Mascotas</a>
+    </nav>
+  </header>
 
   <main class="max-w-2xl mx-auto p-4 space-y-4">
 
@@ -77,7 +74,6 @@
           <textarea id="post-content" rows="2" placeholder="¿Qué estás pensando?"
             class="w-full resize-none border-0 focus:outline-none text-slate-700 placeholder:text-slate-400"></textarea>
 
-          <!-- Preview de imagen -->
           <div id="post-image-preview" class="hidden mt-2">
             <img id="post-image-preview-img" class="rounded-lg max-h-48 object-cover" />
             <button id="btn-quitar-imagen" class="text-xs text-red-500 mt-1">✕ Quitar imagen</button>
@@ -195,12 +191,12 @@
       }
 
       // ============================================================
-      //  CARGAR POSTS (SIN JOINS - 3 CONSULTAS SEPARADAS)
+      //  CARGAR POSTS (+ perfiles + likes + comentarios)
       // ============================================================
       async function cargarPosts() {
         const contenedor = document.getElementById('posts-container');
 
-        // 1. Traer los posts
+        // 1. Posts
         const { data: posts, error: errorPosts } = await sb
           .from('posts')
           .select('*')
@@ -222,7 +218,7 @@
           return;
         }
 
-        // 2. Traer los perfiles de los autores
+        // 2. Perfiles de autores
         const userIds = [...new Set(posts.map(p => p.user_id))];
         const { data: profiles } = await sb
           .from('profiles')
@@ -232,7 +228,7 @@
         const profilesMap = {};
         if (profiles) profiles.forEach(p => profilesMap[p.id] = p);
 
-        // 3. Traer los likes de esos posts
+        // 3. Likes
         const postIds = posts.map(p => p.id);
         const { data: likes } = await sb
           .from('likes')
@@ -247,27 +243,59 @@
           });
         }
 
-        // 4. Ensamblar
+        // 4. Comentarios
+        const { data: comments } = await sb
+          .from('comments')
+          .select('*')
+          .in('post_id', postIds)
+          .order('created_at', { ascending: true });
+
+        const commentsMap = {};
+        const commentUserIds = new Set();
+        if (comments) {
+          comments.forEach(c => {
+            if (!commentsMap[c.post_id]) commentsMap[c.post_id] = [];
+            commentsMap[c.post_id].push(c);
+            commentUserIds.add(c.user_id);
+          });
+        }
+
+        // 5. Perfiles de comentaristas que no estén ya
+        const otrosUserIds = [...commentUserIds].filter(id => !profilesMap[id]);
+        if (otrosUserIds.length > 0) {
+          const { data: otrosPerfiles } = await sb
+            .from('profiles')
+            .select('*')
+            .in('id', otrosUserIds);
+          if (otrosPerfiles) otrosPerfiles.forEach(p => profilesMap[p.id] = p);
+        }
+
+        // 6. Ensamblar
         const postsEnsamblados = posts.map(p => ({
           ...p,
           profiles: profilesMap[p.user_id] || null,
-          likes: likesMap[p.id] || []
+          likes: likesMap[p.id] || [],
+          comments: commentsMap[p.id] || []
         }));
 
-        // 5. Pintar
-        contenedor.innerHTML = postsEnsamblados.map(p => renderPost(p)).join('');
+        // 7. Pintar
+        contenedor.innerHTML = postsEnsamblados.map(p => renderPost(p, profilesMap)).join('');
         enlazarEventosPosts();
       }
 
       // ============================================================
       //  RENDER DE UN POST
       // ============================================================
-      function renderPost(post) {
+      function renderPost(post, profilesMap) {
         const autor = post.profiles || {};
         const likes = post.likes || [];
+        const comments = post.comments || [];
         const meGusta = likes.some(l => l.user_id === currentUser.id);
         const numLikes = likes.length;
         const esMio = post.user_id === currentUser.id;
+
+        const comentariosVisibles = comments.slice(-2);
+        const hayMasComentarios = comments.length > 2;
 
         return `
           <article class="bg-white rounded-2xl shadow p-4" data-post-id="${post.id}">
@@ -298,8 +326,65 @@
                 </svg>
                 <span>${numLikes || ''}</span>
               </button>
+              <button class="btn-toggle-comments flex items-center gap-1 transition text-slate-500 hover:text-indigo-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                <span>${comments.length || ''}</span>
+              </button>
             </footer>
+
+            <!-- Sección de comentarios -->
+            <div class="comments-section mt-3 pt-3 border-t border-slate-100 hidden">
+              ${hayMasComentarios ? `
+                <button class="btn-ver-todos text-xs text-indigo-600 hover:underline mb-2">
+                  Ver los ${comments.length} comentarios
+                </button>` : ''}
+
+              <div class="comments-list space-y-2 ${hayMasComentarios ? '' : ''}">
+                ${comentariosVisibles.map(c => renderComentario(c, profilesMap[c.user_id])).join('')}
+              </div>
+
+              ${hayMasComentarios ? `
+                <div class="comments-all space-y-2 hidden">
+                  ${comments.map(c => renderComentario(c, profilesMap[c.user_id])).join('')}
+                </div>` : ''}
+
+              <!-- Input nuevo comentario -->
+              <div class="flex gap-2 mt-3 items-center">
+                ${renderAvatar(currentProfile, 'avatar-sm')}
+                <input type="text" placeholder="Escribe un comentario…" maxlength="300"
+                  class="input-comentario flex-1 text-sm border border-slate-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button class="btn-enviar-comentario text-indigo-600 hover:text-indigo-800 font-semibold text-sm px-2 disabled:opacity-40" disabled>
+                  Enviar
+                </button>
+              </div>
+            </div>
           </article>`;
+      }
+
+      // ============================================================
+      //  RENDER DE UN COMENTARIO
+      // ============================================================
+      function renderComentario(c, perfil) {
+        const esMio = c.user_id === currentUser.id;
+        return `
+          <div class="flex gap-2 items-start group" data-comment-id="${c.id}">
+            ${renderAvatar(perfil, 'avatar-sm')}
+            <div class="flex-1 bg-slate-50 rounded-2xl px-3 py-2 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <p class="text-xs font-semibold text-slate-700">
+                  ${escapeHtml(perfil?.full_name || perfil?.username || 'Usuario')}
+                  <span class="text-slate-400 font-normal ml-1">${tiempoRelativo(c.created_at)}</span>
+                </p>
+                ${esMio ? `
+                  <button class="btn-eliminar-comentario text-slate-300 hover:text-red-500 transition text-xs"
+                    title="Eliminar comentario">✕</button>` : ''}
+              </div>
+              <p class="text-sm text-slate-700 break-words">${escapeHtml(c.content)}</p>
+            </div>
+          </div>`;
       }
 
       // ============================================================
@@ -307,9 +392,58 @@
       // ============================================================
       function enlazarEventosPosts() {
         document.querySelectorAll('article[data-post-id]').forEach(art => {
-          const id = Number(art.dataset.postId);
-          art.querySelector('.btn-like')?.addEventListener('click', () => toggleLike(id));
-          art.querySelector('.btn-eliminar')?.addEventListener('click', () => eliminarPost(id));
+          const postId = Number(art.dataset.postId);
+
+          // Like
+          art.querySelector('.btn-like')?.addEventListener('click', () => toggleLike(postId));
+
+          // Eliminar post
+          art.querySelector('.btn-eliminar')?.addEventListener('click', () => eliminarPost(postId));
+
+          // Toggle comentarios
+          art.querySelector('.btn-toggle-comments')?.addEventListener('click', () => {
+            const section = art.querySelector('.comments-section');
+            section.classList.toggle('hidden');
+            if (!section.classList.contains('hidden')) {
+              setTimeout(() => art.querySelector('.input-comentario')?.focus(), 50);
+            }
+          });
+
+          // Ver todos los comentarios
+          const btnVerTodos = art.querySelector('.btn-ver-todos');
+          const commentsList = art.querySelector('.comments-list');
+          const commentsAll = art.querySelector('.comments-all');
+          btnVerTodos?.addEventListener('click', () => {
+            commentsList?.classList.add('hidden');
+            commentsAll?.classList.remove('hidden');
+            btnVerTodos.remove();
+          });
+
+          // Input comentario
+          const input = art.querySelector('.input-comentario');
+          const btnEnviar = art.querySelector('.btn-enviar-comentario');
+
+          input?.addEventListener('input', () => {
+            btnEnviar.disabled = !input.value.trim();
+          });
+          input?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !btnEnviar.disabled) btnEnviar.click();
+          });
+          btnEnviar?.addEventListener('click', async () => {
+            const texto = input.value.trim();
+            if (!texto) return;
+            btnEnviar.disabled = true;
+            await agregarComentario(postId, texto);
+          });
+
+          // Eliminar comentarios
+          art.querySelectorAll('.btn-eliminar-comentario').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const commentDiv = btn.closest('[data-comment-id]');
+              const commentId = Number(commentDiv.dataset.commentId);
+              eliminarComentario(commentId);
+            });
+          });
         });
       }
 
@@ -336,13 +470,43 @@
       //  ELIMINAR POST
       // ============================================================
       async function eliminarPost(postId) {
-        if (!confirm('¿Eliminar esta publicación?')) return;
+        if (!confirm('¿Eliminar esta publicación y todos sus comentarios?')) return;
         const { error } = await sb.from('posts').delete().eq('id', postId);
         if (error) {
           mostrarToast('No se pudo eliminar', true);
           return;
         }
         mostrarToast('Publicación eliminada');
+        await cargarPosts();
+      }
+
+      // ============================================================
+      //  AGREGAR COMENTARIO
+      // ============================================================
+      async function agregarComentario(postId, content) {
+        const { error } = await sb.from('comments').insert({
+          post_id: postId,
+          user_id: currentUser.id,
+          content
+        });
+        if (error) {
+          console.error(error);
+          mostrarToast('Error al enviar comentario', true);
+          return;
+        }
+        await cargarPosts();
+      }
+
+      // ============================================================
+      //  ELIMINAR COMENTARIO
+      // ============================================================
+      async function eliminarComentario(commentId) {
+        if (!confirm('¿Eliminar este comentario?')) return;
+        const { error } = await sb.from('comments').delete().eq('id', commentId);
+        if (error) {
+          mostrarToast('No se pudo eliminar', true);
+          return;
+        }
         await cargarPosts();
       }
 
