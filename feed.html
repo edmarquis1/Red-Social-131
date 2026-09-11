@@ -44,6 +44,7 @@
       <nav class="hidden md:flex items-center gap-1 text-sm">
         <a href="feed.html" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">Muro</a>
         <a href="friends.html" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">👥 Amigos</a>
+        <a href="chat.html" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">💬 Mensajes</a>
         <a href="https://edmarquis1.github.io/REGISTRO-DE-DE-ESTUDIANTES/" target="_blank"
            class="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100">🎓 Estudiantes</a>
         <a href="https://edmarquis1.github.io/Usalesiana/" target="_blank"
@@ -87,6 +88,7 @@
     <nav class="md:hidden flex items-center gap-1 px-4 pb-3 text-xs overflow-x-auto">
       <a href="feed.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">Muro</a>
       <a href="friends.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">👥 Amigos</a>
+      <a href="chat.html" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">💬 Mensajes</a>
       <a href="https://edmarquis1.github.io/REGISTRO-DE-DE-ESTUDIANTES/" target="_blank"
          class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 whitespace-nowrap">🎓 Estudiantes</a>
       <a href="https://edmarquis1.github.io/Usalesiana/" target="_blank"
@@ -200,6 +202,14 @@
         await cargarNotificaciones();
         enlazarNotificaciones();
       }
+      // Realtime: recargar posts cuando alguien publique/comente/dé like
+sb.channel('feed-realtime')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => cargarPosts())
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => cargarPosts())
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => cargarPosts())
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications',
+      filter: `user_id=eq.${currentUser.id}` }, () => cargarNotificaciones())
+  .subscribe();
 
       // ============================================================
       //  POSTS
@@ -566,6 +576,14 @@
         notificaciones = notificaciones.map(n => ({ ...n, is_read: true }));
         pintarNotificaciones();
       }
+      // Realtime: recargar posts cuando alguien publique/comente/dé like
+sb.channel('feed-realtime')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => cargarPosts())
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => cargarPosts())
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => cargarPosts())
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications',
+      filter: `user_id=eq.${currentUser.id}` }, () => cargarNotificaciones())
+  .subscribe();
 
       // ============================================================
       //  CREAR POST
