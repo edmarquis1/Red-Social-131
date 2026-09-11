@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Social 131 — Mensajes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #1a1a2e; color: white; padding: 10px 24px; border-radius: 30px;
+      font-size: 0.9rem; z-index: 9999; opacity: 0; transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: bold; font-size: 0.9rem; flex-shrink: 0;
+    }
+    .avatar-lg { width: 56px; height: 56px; font-size: 1.3rem; }
+    .avatar-sm { width: 32px; height: 32px; font-size: 0.75rem; }
+    .burbuja-mia {
+      background: #4f46e5; color: white;
+      border-radius: 18px 18px 4px 18px;
+    }
+    .burbuja-suya {
+      background: #f1f5f9; color: #1e293b;
+      border-radius: 18px 18px 18px 4px;
+    }
+    .chat-scroll { height: calc(100vh - 220px); overflow-y: auto; }
+    .conv-scroll { max-height: calc(100vh - 200px); overflow-y: auto; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100">
+
+  <!-- Header -->
+  <header class="bg-white shadow sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="feed.html" class="text-indigo-600 font-medium text-sm">← Volver al muro</a>
+      <h1 class="text-lg font-bold text-slate-800">💬 Mensajes</h1>
+      <div class="w-20"></div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto p-4">
+    <div class="bg-white rounded-2xl shadow overflow-hidden grid grid-cols-1 md:grid-cols-3" style="min-height: 70vh;">
+
+      <!-- Lista de conversaciones -->
+      <aside class="md:border-r border-slate-200">
+        <div class="p-3 border-b border-slate-200">
+          <input id="input-buscar-conv" type="text" placeholder="Buscar amigo..."
+            class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div id="lista-conversaciones" class="conv-scroll divide-y divide-slate-50">
+          <p class="p-4 text-center text-slate-400 text-sm">Cargando amigos…</p>
+        </div>
+      </aside>
+
+      <!-- Ventana de chat -->
+      <section class="md:col-span-2 flex flex-col">
+        <!-- Cabecera del chat -->
+        <div id="chat-header" class="p-3 border-b border-slate-200 flex items-center gap-3">
+          <p class="text-slate-400 text-sm">Selecciona un amigo para chatear</p>
+        </div>
+
+        <!-- Mensajes -->
+        <div id="chat-mensajes" class="chat-scroll p-4 space-y-2 bg-slate-50"></div>
+
+        <!-- Input -->
+        <div id="chat-input-wrap" class="p-3 border-t border-slate-200 hidden">
+          <div class="flex gap-2 items-end">
+            <textarea id="chat-input" rows="1" placeholder="Escribe un mensaje…"
+              class="flex-1 resize-none border border-slate-200 rounded-2xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 max-h-24"></textarea>
+            <button id="btn-enviar" disabled
+              class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-medium px-4 py-2 rounded-2xl text-sm shadow">
+              Enviar
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    (function() {
+      const SUPABASE_URL = 'https://dqzxxwnkkoiefkwxtnnt.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxenh4d25ra29pZWZrd3h0bm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MDkwMTEsImV4cCI6MjEwNDQ4NTAxMX0.TnByaHcgrPTrKr2y5PhpFLNXlYlylOGOIP9B_t7s7tE';
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      let currentUser = null;
+      let currentProfile = null;
+      let amigos = [];                 // [{ perfil, ultimoMensaje, noLeidos }]
+      let conversacionActiva = null;   // id del amigo
+      let canalRealtime = null;
+
+      const toastEl = document.getElementById('toast');
+      let toastTimer;
+      function mostrarToast(msg, esError = false) {
+        toastEl.textContent = msg;
+        toastEl.style.background = esError ? '#991b1b' : '#1a1a2e';
+        toastEl.classList.add('visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 2500);
+      }
+
+      function escapeHtml(t) {
+        const d = document.createElement('div');
+        d.textContent = t || '';
+        return d.innerHTML;
+      }
+
+      function tiempoRelativo(fechaISO) {
+        const ahora = new Date();
+        const fecha = new Date(fechaISO);
+        const seg = Math.floor((ahora - fecha) / 1000);
+        if (seg < 60) return 'ahora';
+        if (seg < 3600) return `${Math.floor(seg/60)} min`;
+        if (seg < 86400) return `${Math.floor(seg/3600)} h`;
+        if (seg < 604800) return `${Math.floor(seg/86400)} d`;
+        return fecha.toLocaleDateString();
+      }
+
+      function renderAvatar(perfil, size = '') {
+        if (!perfil) return `<div class="avatar ${size}">?</div>`;
+        if (perfil.avatar_url) return `<img src="${perfil.avatar_url}" class="avatar ${size}" alt="">`;
+        const inicial = (perfil.full_name || perfil.username || '?').charAt(0).toUpperCase();
+        return `<div class="avatar ${size}">${inicial}</div>`;
+      }
+
+      // ============================================================
+      //  INICIO
+      // ============================================================
+      async function iniciar() {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return window.location.href = 'index.html';
+        currentUser = session.user;
+
+        const { data: perfil } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+        currentProfile = perfil;
+
+        await cargarAmigos();
+        pintarConversaciones();
+        enlazarUI();
+        suscribirseRealtime();
+      }
+
+      // ============================================================
+      //  CARGAR AMIGOS + ÚLTIMO MENSAJE
+      // ============================================================
+      async function cargarAmigos() {
+        // 1. Traer amistades aceptadas
+        const { data: rels } = await sb.from('friendships')
+          .select('*')
+          .eq('status', 'accepted')
+          .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
+
+        if (!rels || rels.length === 0) {
+          amigos = [];
+          return;
+        }
+
+        const idsAmigos = rels.map(r =>
+          r.requester_id === currentUser.id ? r.addressee_id : r.requester_id
+        );
+
+        // 2. Perfiles de esos amigos
+        const { data: perfiles } = await sb.from('profiles').select('*').in('id', idsAmigos);
+        const perfilesMap = {};
+        if (perfiles) perfiles.forEach(p => perfilesMap[p.id] = p);
+
+        // 3. Últimos mensajes con cada amigo
+        const { data: mensajes } = await sb.from('messages')
+          .select('*')
+          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+          .order('created_at', { ascending: false });
+
+        const ultimoPorAmigo = {};
+        const noLeidosPorAmigo = {};
+        (mensajes || []).forEach(m => {
+          const otro = m.sender_id === currentUser.id ? m.receiver_id : m.sender_id;
+          if (!ultimoPorAmigo[otro]) ultimoPorAmigo[otro] = m;
+          if (m.receiver_id === currentUser.id && !m.is_read) {
+            noLeidosPorAmigo[otro] = (noLeidosPorAmigo[otro] || 0) + 1;
+          }
+        });
+
+        amigos = idsAmigos.map(id => ({
+          perfil: perfilesMap[id] || { id, full_name: 'Usuario', username: 'usuario' },
+          ultimoMensaje: ultimoPorAmigo[id] || null,
+          noLeidos: noLeidosPorAmigo[id] || 0
+        })).sort((a, b) => {
+          const fa = a.ultimoMensaje?.created_at || '0';
+          const fb = b.ultimoMensaje?.created_at || '0';
+          return fb.localeCompare(fa);
+        });
+      }
+
+      // ============================================================
+      //  LISTA DE CONVERSACIONES
+      // ============================================================
+      function pintarConversaciones(filtro = '') {
+        const cont = document.getElementById('lista-conversaciones');
+        const f = filtro.trim().toLowerCase();
+
+        const filtrados = amigos.filter(a =>
+          !f || (a.perfil.full_name || '').toLowerCase().includes(f) ||
+                 (a.perfil.username || '').toLowerCase().includes(f)
+        );
+
+        if (filtrados.length === 0) {
+          cont.innerHTML = `<p class="p-4 text-center text-slate-400 text-sm">
+            ${amigos.length === 0 ? 'Aún no tienes amigos. Ve a la sección Amigos para agregar.' : 'Sin resultados.'}
+          </p>`;
+          return;
+        }
+
+        cont.innerHTML = filtrados.map(a => {
+          const activa = a.perfil.id === conversacionActiva;
+          const preview = a.ultimoMensaje
+            ? (a.ultimoMensaje.sender_id === currentUser.id ? 'Tú: ' : '') + escapeHtml(a.ultimoMensaje.content).slice(0, 40)
+            : 'Sin mensajes aún';
+          return `
+            <button class="conv-item w-full text-left p-3 flex items-center gap-3 hover:bg-slate-50 transition ${activa ? 'bg-indigo-50' : ''}" data-id="${a.perfil.id}">
+              ${renderAvatar(a.perfil)}
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-sm text-slate-800 truncate">${escapeHtml(a.perfil.full_name || a.perfil.username)}</p>
+                <p class="text-xs text-slate-400 truncate">${preview}</p>
+              </div>
+              <div class="text-right">
+                ${a.ultimoMensaje ? `<p class="text-xs text-slate-400">${tiempoRelativo(a.ultimoMensaje.created_at)}</p>` : ''}
+                ${a.noLeidos > 0 ? `<span class="inline-block mt-1 bg-indigo-600 text-white text-xs rounded-full px-2">${a.noLeidos}</span>` : ''}
+              </div>
+            </button>`;
+        }).join('');
+
+        cont.querySelectorAll('.conv-item').forEach(b => {
+          b.addEventListener('click', () => abrirConversacion(b.dataset.id));
+        });
+      }
+
+      // ============================================================
+      //  ABRIR CONVERSACIÓN
+      // ============================================================
+      async function abrirConversacion(amigoId) {
+        conversacionActiva = amigoId;
+        const amigo = amigos.find(a => a.perfil.id === amigoId);
+        if (!amigo) return;
+
+        // Header del chat
+        document.getElementById('chat-header').innerHTML = `
+          ${renderAvatar(amigo.perfil)}
+          <div>
+            <p class="font-semibold text-slate-800">${escapeHtml(amigo.perfil.full_name || amigo.perfil.username)}</p>
+            <p class="text-xs text-slate-400">@${escapeHtml(amigo.perfil.username)}</p>
+          </div>`;
+
+        document.getElementById('chat-input-wrap').classList.remove('hidden');
+        pintarConversaciones();
+
+        await cargarMensajes(amigoId);
+        await marcarComoLeidos(amigoId);
+
+        // Recargar la lista para actualizar contador
+        await cargarAmigos();
+        pintarConversaciones();
+
+        document.getElementById('chat-input').focus();
+      }
+
+      async function cargarMensajes(amigoId) {
+        const cont = document.getElementById('chat-mensajes');
+        const { data, error } = await sb.from('messages')
+          .select('*')
+          .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${amigoId}),and(sender_id.eq.${amigoId},receiver_id.eq.${currentUser.id})`)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          cont.innerHTML = `<p class="text-center text-red-500 text-sm">Error al cargar mensajes</p>`;
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          cont.innerHTML = `<p class="text-center text-slate-400 text-sm py-8">Aún no hay mensajes. ¡Di hola! 👋</p>`;
+          return;
+        }
+
+        cont.innerHTML = data.map(m => {
+          const esMio = m.sender_id === currentUser.id;
+          return `
+            <div class="flex ${esMio ? 'justify-end' : 'justify-start'}">
+              <div class="max-w-[75%]">
+                <div class="${esMio ? 'burbuja-mia' : 'burbuja-suya'} px-3 py-2 text-sm break-words">
+                  ${escapeHtml(m.content)}
+                </div>
+                <p class="text-xs text-slate-400 mt-1 ${esMio ? 'text-right' : 'text-left'}">${tiempoRelativo(m.created_at)}</p>
+              </div>
+            </div>`;
+        }).join('');
+
+        cont.scrollTop = cont.scrollHeight;
+      }
+
+      async function marcarComoLeidos(amigoId) {
+        await sb.from('messages')
+          .update({ is_read: true })
+          .eq('sender_id', amigoId)
+          .eq('receiver_id', currentUser.id)
+          .eq('is_read', false);
+      }
+
+      // ============================================================
+      //  ENVIAR MENSAJE
+      // ============================================================
+      async function enviarMensaje() {
+        const input = document.getElementById('chat-input');
+        const texto = input.value.trim();
+        if (!texto || !conversacionActiva) return;
+
+        input.value = '';
+        input.style.height = 'auto';
+        document.getElementById('btn-enviar').disabled = true;
+
+        const { error } = await sb.from('messages').insert({
+          sender_id: currentUser.id,
+          receiver_id: conversacionActiva,
+          content: texto
+        });
+
+        if (error) {
+          console.error(error);
+          mostrarToast('Error al enviar', true);
+          return;
+        }
+
+        await cargarMensajes(conversacionActiva);
+        await cargarAmigos();
+        pintarConversaciones();
+      }
+
+      // ============================================================
+      //  REALTIME
+      // ============================================================
+      function suscribirseRealtime() {
+        canalRealtime = sb.channel('chat-realtime')
+          .on('postgres_changes', {
+            event: 'INSERT', schema: 'public', table: 'messages'
+          }, (payload) => {
+            const m = payload.new;
+            // Si es para mí y estoy en esa conversación, agregar
+            if (m.receiver_id === currentUser.id) {
+              if (m.sender_id === conversacionActiva) {
+                cargarMensajes(conversacionActiva);
+                marcarComoLeidos(conversacionActiva);
+              }
+              cargarAmigos().then(() => pintarConversaciones());
+            }
+          })
+          .subscribe();
+      }
+
+      // ============================================================
+      //  UI
+      // ============================================================
+      function enlazarUI() {
+        const input = document.getElementById('chat-input');
+        const btn = document.getElementById('btn-enviar');
+
+        input.addEventListener('input', () => {
+          btn.disabled = !input.value.trim();
+          input.style.height = 'auto';
+          input.style.height = Math.min(input.scrollHeight, 96) + 'px';
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!btn.disabled) enviarMensaje();
+          }
+        });
+
+        btn.addEventListener('click', enviarMensaje);
+
+        document.getElementById('input-buscar-conv').addEventListener('input', (e) => {
+          pintarConversaciones(e.target.value);
+        });
+      }
+
+      iniciar();
+    })();
+  </script>
+</body>
+</html>
