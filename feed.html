@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Red Social — Muro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="min-h-screen bg-slate-100">
+
+  <header class="bg-white shadow sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-xl font-bold text-indigo-600"> Mi Red Social</h1>
+      <div class="flex items-center gap-3">
+        <span id="user-name" class="text-sm text-slate-600"></span>
+        <button id="btn-logout" class="text-sm text-red-500 hover:text-red-700 font-medium">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto p-4">
+    <div class="bg-white rounded-2xl shadow p-6 text-center text-slate-500">
+      <p class="text-lg font-medium">¡Bienvenido! </p>
+      <p class="mt-2 text-sm">Aquí construiremos el muro con publicaciones.</p>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      const SUPABASE_URL = 'https://dqzxxwnkkoiefkwxtnnt.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxenh4d25ra29pZWZrd3h0bm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MDkwMTEsImV4cCI6MjEwNDQ4NTAxMX0.TnByaHcgrPTrKr2y5PhpFLNXlYlylOGOIP9B_t7s7tE';
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // Verificar sesión
+      sb.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          window.location.href = 'index.html';
+          return;
+        }
+        document.getElementById('user-name').textContent = session.user.email;
+      });
+
+      // Cerrar sesión
+      document.getElementById('btn-logout').addEventListener('click', async () => {
+        await sb.auth.signOut();
+        window.location.href = 'index.html';
+      });
+    })();
+  </script>
+</body>
+</html>
