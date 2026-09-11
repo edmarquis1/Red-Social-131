@@ -172,25 +172,21 @@
         await cargarPosts();
       }
 
-      // ============================================================
-      //  CARGAR POSTS
+        // ============================================================
+      //  CARGAR POSTS (Versión corregida sin errores 400)
       // ============================================================
       async function cargarPosts() {
         const contenedor = document.getElementById('posts-container');
 
-        // Traer posts + perfil del autor + likes
-        const { data: posts, error } = await sb
+        // 1. Traer los posts (sin joins problemáticos)
+        const { data: posts, error: errorPosts } = await sb
           .from('posts')
-          .select(`
-            *,
-            profiles:user_id (id, username, full_name, avatar_url),
-            likes (user_id)
-          `)
+          .select('*')
           .order('created_at', { ascending: false })
           .limit(50);
 
-        if (error) {
-          console.error(error);
+        if (errorPosts) {
+          console.error('Error al traer posts:', errorPosts);
           contenedor.innerHTML = `<div class="bg-red-50 text-red-700 p-4 rounded-xl text-sm">Error al cargar publicaciones.</div>`;
           return;
         }
@@ -204,7 +200,40 @@
           return;
         }
 
-        contenedor.innerHTML = posts.map(p => renderPost(p)).join('');
+        // 2. Traer los perfiles de los autores de esos posts
+        const userIds = [...new Set(posts.map(p => p.user_id))];
+        const { data: profiles, error: errorProfiles } = await sb
+          .from('profiles')
+          .select('*')
+          .in('id', userIds);
+
+        const profilesMap = {};
+        if (profiles) profiles.forEach(p => profilesMap[p.id] = p);
+
+        // 3. Traer los likes de esos posts
+        const postIds = posts.map(p => p.id);
+        const { data: likes, error: errorLikes } = await sb
+          .from('likes')
+          .select('*')
+          .in('post_id', postIds);
+
+        const likesMap = {};
+        if (likes) {
+          likes.forEach(l => {
+            if (!likesMap[l.post_id]) likesMap[l.post_id] = [];
+            likesMap[l.post_id].push(l);
+          });
+        }
+
+        // 4. Ensamblar todo en un solo objeto para el render
+        const postsEnsamblados = posts.map(p => ({
+          ...p,
+          profiles: profilesMap[p.user_id] || null,
+          likes: likesMap[p.id] || []
+        }));
+
+        // 5. Pintar en pantalla
+        contenedor.innerHTML = postsEnsamblados.map(p => renderPost(p)).join('');
         enlazarEventosPosts();
       }
 
