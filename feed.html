@@ -6,48 +6,370 @@
   <title>Mi Red Social — Muro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #1a1a2e; color: white; padding: 10px 24px; border-radius: 30px;
+      font-size: 0.9rem; z-index: 9999; opacity: 0; transition: all 0.3s ease;
+      pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: bold; font-size: 0.9rem;
+    }
+    .avatar-lg { width: 48px; height: 48px; font-size: 1.1rem; }
+  </style>
 </head>
 <body class="min-h-screen bg-slate-100">
 
+  <!-- Header -->
   <header class="bg-white shadow sticky top-0 z-20">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <h1 class="text-xl font-bold text-indigo-600"> Mi Red Social</h1>
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-lg sm:text-xl font-bold text-indigo-600">Mi Red Social</h1>
       <div class="flex items-center gap-3">
-        <span id="user-name" class="text-sm text-slate-600"></span>
+        <a href="profile.html" id="link-perfil" class="flex items-center gap-2 hover:bg-slate-100 px-2 py-1 rounded-lg transition">
+          <div id="avatar-header" class="avatar">?</div>
+          <span id="user-name" class="text-sm text-slate-700 hidden sm:inline"></span>
+        </a>
         <button id="btn-logout" class="text-sm text-red-500 hover:text-red-700 font-medium">
-          Cerrar sesión
+          Salir
         </button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto p-4">
-    <div class="bg-white rounded-2xl shadow p-6 text-center text-slate-500">
-      <p class="text-lg font-medium">¡Bienvenido! </p>
-      <p class="mt-2 text-sm">Aquí construiremos el muro con publicaciones.</p>
-    </div>
+  <main class="max-w-2xl mx-auto p-4 space-y-4">
+
+    <!-- Caja de crear publicación -->
+    <section class="bg-white rounded-2xl shadow p-4">
+      <div class="flex gap-3">
+        <div id="avatar-composer" class="avatar">?</div>
+        <div class="flex-1">
+          <textarea id="post-content" rows="2" placeholder="¿Qué estás pensando?"
+            class="w-full resize-none border-0 focus:outline-none text-slate-700 placeholder:text-slate-400"></textarea>
+
+          <!-- Preview de imagen -->
+          <div id="post-image-preview" class="hidden mt-2">
+            <img id="post-image-preview-img" class="rounded-lg max-h-48 object-cover" />
+            <button id="btn-quitar-imagen" class="text-xs text-red-500 mt-1">✕ Quitar imagen</button>
+          </div>
+
+          <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+            <label for="post-image" class="cursor-pointer text-slate-500 hover:text-indigo-600 text-sm flex items-center gap-1">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <span class="hidden sm:inline">Foto</span>
+            </label>
+            <input type="file" id="post-image" accept="image/*" class="hidden">
+
+            <button id="btn-publicar"
+              class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition text-white font-medium px-5 py-2 rounded-lg text-sm shadow disabled:opacity-50 disabled:cursor-not-allowed">
+              Publicar
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lista de publicaciones -->
+    <section id="posts-container" class="space-y-4">
+      <div class="text-center py-8 text-slate-400">
+        <div class="animate-spin inline-block w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+        <p class="mt-2 text-sm">Cargando publicaciones…</p>
+      </div>
+    </section>
   </main>
+
+  <div id="toast" class="toast"></div>
 
   <script>
     (function() {
+      // ============================================================
+      //  CONFIGURACIÓN
+      // ============================================================
       const SUPABASE_URL = 'https://dqzxxwnkkoiefkwxtnnt.supabase.co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxenh4d25ra29pZWZrd3h0bm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MDkwMTEsImV4cCI6MjEwNDQ4NTAxMX0.TnByaHcgrPTrKr2y5PhpFLNXlYlylOGOIP9B_t7s7tE';
       const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      // Verificar sesión
-      sb.auth.getSession().then(({ data: { session } }) => {
+      // ============================================================
+      //  ESTADO GLOBAL
+      // ============================================================
+      let currentUser = null;       // Sesión actual
+      let currentProfile = null;    // Datos del perfil actual
+      let imagenBase64 = '';        // Imagen temporal del composer
+
+      // ============================================================
+      //  UTILIDADES
+      // ============================================================
+      const toastEl = document.getElementById('toast');
+      let toastTimer = null;
+      function mostrarToast(msg, esError = false) {
+        toastEl.textContent = msg;
+        toastEl.style.background = esError ? '#991b1b' : '#1a1a2e';
+        toastEl.classList.add('visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 2500);
+      }
+
+      function escapeHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto;
+        return div.innerHTML;
+      }
+
+      function tiempoRelativo(fechaISO) {
+        const ahora = new Date();
+        const fecha = new Date(fechaISO);
+        const seg = Math.floor((ahora - fecha) / 1000);
+        if (seg < 60) return 'hace unos segundos';
+        if (seg < 3600) return `hace ${Math.floor(seg/60)} min`;
+        if (seg < 86400) return `hace ${Math.floor(seg/3600)} h`;
+        if (seg < 604800) return `hace ${Math.floor(seg/86400)} d`;
+        return fecha.toLocaleDateString();
+      }
+
+      function renderAvatar(perfil, size = '') {
+        if (!perfil) return `<div class="avatar ${size}">?</div>`;
+        if (perfil.avatar_url) {
+          return `<img src="${perfil.avatar_url}" class="avatar ${size}" alt="${escapeHtml(perfil.username)}">`;
+        }
+        const inicial = (perfil.full_name || perfil.username || '?').charAt(0).toUpperCase();
+        return `<div class="avatar ${size}">${inicial}</div>`;
+      }
+
+      // ============================================================
+      //  INICIALIZACIÓN
+      // ============================================================
+      async function iniciar() {
+        const { data: { session } } = await sb.auth.getSession();
         if (!session) {
           window.location.href = 'index.html';
           return;
         }
-        document.getElementById('user-name').textContent = session.user.email;
+        currentUser = session.user;
+
+        // Cargar perfil del usuario
+        const { data: perfil } = await sb
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
+
+        currentProfile = perfil;
+
+        // Actualizar UI del header
+        document.getElementById('user-name').textContent = perfil?.full_name || currentUser.email;
+        document.getElementById('avatar-header').outerHTML = renderAvatar(perfil);
+        document.getElementById('avatar-composer').outerHTML = renderAvatar(perfil);
+
+        // Cargar publicaciones
+        await cargarPosts();
+      }
+
+      // ============================================================
+      //  CARGAR POSTS
+      // ============================================================
+      async function cargarPosts() {
+        const contenedor = document.getElementById('posts-container');
+
+        // Traer posts + perfil del autor + likes
+        const { data: posts, error } = await sb
+          .from('posts')
+          .select(`
+            *,
+            profiles:user_id (id, username, full_name, avatar_url),
+            likes (user_id)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (error) {
+          console.error(error);
+          contenedor.innerHTML = `<div class="bg-red-50 text-red-700 p-4 rounded-xl text-sm">Error al cargar publicaciones.</div>`;
+          return;
+        }
+
+        if (!posts || posts.length === 0) {
+          contenedor.innerHTML = `
+            <div class="bg-white rounded-2xl shadow p-8 text-center text-slate-400">
+              <p class="text-lg">No hay publicaciones aún</p>
+              <p class="text-sm mt-1">¡Sé el primero en publicar algo!</p>
+            </div>`;
+          return;
+        }
+
+        contenedor.innerHTML = posts.map(p => renderPost(p)).join('');
+        enlazarEventosPosts();
+      }
+
+      // ============================================================
+      //  RENDER DE UN POST
+      // ============================================================
+      function renderPost(post) {
+        const autor = post.profiles || {};
+        const likes = post.likes || [];
+        const meGusta = likes.some(l => l.user_id === currentUser.id);
+        const numLikes = likes.length;
+        const esMio = post.user_id === currentUser.id;
+
+        return `
+          <article class="bg-white rounded-2xl shadow p-4" data-post-id="${post.id}">
+            <header class="flex items-start gap-3 mb-3">
+              ${renderAvatar(autor)}
+              <div class="flex-1 min-w-0">
+                <p class="font-semibold text-slate-800 truncate">${escapeHtml(autor.full_name || autor.username || 'Usuario')}</p>
+                <p class="text-xs text-slate-400">@${escapeHtml(autor.username || 'anon')} · ${tiempoRelativo(post.created_at)}</p>
+              </div>
+              ${esMio ? `
+                <button class="btn-eliminar text-slate-400 hover:text-red-500 transition p-1" title="Eliminar">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>` : ''}
+            </header>
+
+            <p class="text-slate-700 whitespace-pre-wrap break-words mb-3">${escapeHtml(post.content)}</p>
+
+            ${post.image_url ? `<img src="${post.image_url}" class="rounded-xl max-h-96 w-full object-cover mb-3" alt="Publicación">` : ''}
+
+            <footer class="flex items-center gap-4 pt-3 border-t border-slate-100 text-sm">
+              <button class="btn-like flex items-center gap-1 transition ${meGusta ? 'text-red-500' : 'text-slate-500 hover:text-red-500'}">
+                <svg class="w-5 h-5" fill="${meGusta ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+                <span>${numLikes || ''}</span>
+              </button>
+            </footer>
+          </article>`;
+      }
+
+      // ============================================================
+      //  EVENTOS DE LOS POSTS
+      // ============================================================
+      function enlazarEventosPosts() {
+        document.querySelectorAll('article[data-post-id]').forEach(art => {
+          const id = Number(art.dataset.postId);
+
+          art.querySelector('.btn-like')?.addEventListener('click', () => toggleLike(id));
+          art.querySelector('.btn-eliminar')?.addEventListener('click', () => eliminarPost(id));
+        });
+      }
+
+      // ============================================================
+      //  DAR / QUITAR LIKE
+      // ============================================================
+      async function toggleLike(postId) {
+        // Ver si ya tiene like
+        const { data: existente } = await sb
+          .from('likes')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+
+        if (existente) {
+          await sb.from('likes').delete().eq('id', existente.id);
+        } else {
+          await sb.from('likes').insert({ post_id: postId, user_id: currentUser.id });
+        }
+        await cargarPosts();
+      }
+
+      // ============================================================
+      //  ELIMINAR POST
+      // ============================================================
+      async function eliminarPost(postId) {
+        if (!confirm('¿Eliminar esta publicación?')) return;
+        const { error } = await sb.from('posts').delete().eq('id', postId);
+        if (error) {
+          mostrarToast('No se pudo eliminar', true);
+          return;
+        }
+        mostrarToast('Publicación eliminada');
+        await cargarPosts();
+      }
+
+      // ============================================================
+      //  CREAR POST
+      // ============================================================
+      const inputImagen = document.getElementById('post-image');
+      const previewWrap = document.getElementById('post-image-preview');
+      const previewImg = document.getElementById('post-image-preview-img');
+
+      inputImagen.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+          mostrarToast('La imagen es muy grande (máx 2MB)', true);
+          inputImagen.value = '';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = ev => {
+          imagenBase64 = ev.target.result;
+          previewImg.src = imagenBase64;
+          previewWrap.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
       });
 
-      // Cerrar sesión
+      document.getElementById('btn-quitar-imagen').addEventListener('click', () => {
+        imagenBase64 = '';
+        inputImagen.value = '';
+        previewWrap.classList.add('hidden');
+      });
+
+      document.getElementById('btn-publicar').addEventListener('click', async () => {
+        const content = document.getElementById('post-content').value.trim();
+        if (!content && !imagenBase64) {
+          mostrarToast('Escribe algo o añade una imagen', true);
+          return;
+        }
+
+        const btn = document.getElementById('btn-publicar');
+        btn.disabled = true;
+        btn.textContent = 'Publicando…';
+
+        const { error } = await sb.from('posts').insert({
+          user_id: currentUser.id,
+          content: content || ' ',
+          image_url: imagenBase64 || null
+        });
+
+        btn.disabled = false;
+        btn.textContent = 'Publicar';
+
+        if (error) {
+          console.error(error);
+          mostrarToast('Error al publicar', true);
+          return;
+        }
+
+        document.getElementById('post-content').value = '';
+        imagenBase64 = '';
+        inputImagen.value = '';
+        previewWrap.classList.add('hidden');
+        mostrarToast('¡Publicado! ✔');
+        await cargarPosts();
+      });
+
+      // ============================================================
+      //  CERRAR SESIÓN
+      // ============================================================
       document.getElementById('btn-logout').addEventListener('click', async () => {
         await sb.auth.signOut();
         window.location.href = 'index.html';
       });
+
+      iniciar();
     })();
   </script>
 </body>
